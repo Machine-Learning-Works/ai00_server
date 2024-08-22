@@ -26,7 +26,7 @@ use tokio::{
 };
 
 use crate::types::JwtClaims;
-use fastembed::{TextEmbedding, InitOptions};
+use fastembed::{InitOptions, TextEmbedding};
 use hf_hub::api::sync::Api;
 
 mod api;
@@ -104,25 +104,28 @@ fn load_embed(embed: config::EmbedOption) -> Result<TextEmbed> {
     std::env::set_var("HF_HOME", embed.home);
 
     let api = Api::new()?;
-    
+
     // 获取模型信息
     let info_result = TextEmbedding::get_model_info(&embed.model);
     match info_result {
         Ok(info) => {
             // 确保 info 包含 model_code 字段
             let file = api.model(info.model_code.clone()).get("tokenizer.json")?;
-            let tokenizer = tokenizers::Tokenizer::from_file(file).expect("failed to load tokenizer");
+            let tokenizer =
+                tokenizers::Tokenizer::from_file(file).expect("failed to load tokenizer");
 
             log::info!("loading embed model: {}", embed.model);
 
-            let model = TextEmbedding::try_new(InitOptions::new(embed.model.clone()).with_show_download_progress(true))?;
+            let model = TextEmbedding::try_new(
+                InitOptions::new(embed.model.clone()).with_show_download_progress(true),
+            )?;
 
             Ok(TextEmbed {
                 tokenizer,
                 model,
                 info: info.clone(),
             })
-        },
+        }
         Err(e) => Err(e), // 直接返回错误
     }
 }
