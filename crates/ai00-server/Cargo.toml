@@ -30,7 +30,12 @@ zip-extract = "0.1"
 
 [dependencies.fastembed]
 optional = true
-version = "4.0.0"
+version = "4"
+
+
+[target.'cfg(windows)'.dependencies.fastembed]
+optional = true
+version = "4"
 features = ["ort-load-dynamic"]
 
 [dependencies.hf-hub]
