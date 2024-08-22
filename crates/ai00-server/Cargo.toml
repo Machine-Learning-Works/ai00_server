@@ -30,7 +30,8 @@ zip-extract = "0.1"
 
 [dependencies.fastembed]
 optional = true
-version = "3.14"
+version = "4.0.0"
+features = ["ort-load-dynamic"]
 
 [dependencies.hf-hub]
 optional = true

@@ -26,6 +26,8 @@ use tokio::{
 };
 
 use crate::types::JwtClaims;
+use fastembed::{TextEmbedding, InitOptions};
+use hf_hub::api::sync::Api;
 
 mod api;
 mod config;
@@ -98,31 +100,31 @@ pub struct TextEmbed {
 
 #[cfg(feature = "embed")]
 fn load_embed(embed: config::EmbedOption) -> Result<TextEmbed> {
-    use fastembed::{InitOptions, TextEmbedding};
-    use hf_hub::api::sync::Api;
-
     std::env::set_var("HF_ENDPOINT", embed.endpoint);
     std::env::set_var("HF_HOME", embed.home);
 
     let api = Api::new()?;
-    let info = TextEmbedding::get_model_info(&embed.model);
+    
+    // 获取模型信息
+    let info_result = TextEmbedding::get_model_info(&embed.model);
+    match info_result {
+        Ok(info) => {
+            // 确保 info 包含 model_code 字段
+            let file = api.model(info.model_code.clone()).get("tokenizer.json")?;
+            let tokenizer = tokenizers::Tokenizer::from_file(file).expect("failed to load tokenizer");
 
-    let file = api.model(info.model_code.clone()).get("tokenizer.json")?;
-    let tokenizer = tokenizers::Tokenizer::from_file(file).expect("failed to load tokenizer");
+            log::info!("loading embed model: {}", embed.model);
 
-    log::info!("loading embed model: {}", embed.model);
+            let model = TextEmbedding::try_new(InitOptions::new(embed.model.clone()).with_show_download_progress(true))?;
 
-    let model = TextEmbedding::try_new(InitOptions {
-        model_name: embed.model,
-        show_download_progress: true,
-        ..Default::default()
-    })?;
-
-    Ok(TextEmbed {
-        tokenizer,
-        model,
-        info,
-    })
+            Ok(TextEmbed {
+                tokenizer,
+                model,
+                info: info.clone(),
+            })
+        },
+        Err(e) => Err(e), // 直接返回错误
+    }
 }
 
 #[derive(Parser, Debug, Clone)]
